@@ -21,7 +21,7 @@ timeline = json.loads((pasta / "timeline.json").read_text(encoding="utf-8"))
     "window.TIMELINE = " + json.dumps(timeline, ensure_ascii=False) + ";\n", encoding="utf-8")
 (pasta / "index.html").write_text(f"""<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>{roteiro['titulo']}</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400&family=Cormorant+Garamond:ital@1&family=Hanken+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400;700&family=Cormorant+Garamond:ital@1&family=Hanken+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
   html,body {{ margin:0; width:{w}px; height:{h}px; overflow:hidden; background:#ece4d6; }}
   * {{ transition:none !important; animation:none !important; box-sizing:border-box; }}

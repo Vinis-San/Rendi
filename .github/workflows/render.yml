@@ -1,6 +1,6 @@
 # Render em paralelo na nuvem do GitHub.
 # Como usar: crie a branch render/<pasta> com a pasta do vídeo na raiz (index.html, dados.js, img/, audio.mp3, render.json).
-# render.json: {"dur": 78.1, "partes": 6}
+# render.json: {"dur": 78.1, "partes": 6, "sub": 3}  (sub 3 = motion blur, 3x mais lento)
 # Saída: uma release "render-<pasta>" com final.mp4 e tempos.txt. A branch do vídeo é apagada ao fim.
 name: render
 
@@ -19,6 +19,7 @@ jobs:
       partes: ${{ steps.p.outputs.partes }}
       dur: ${{ steps.p.outputs.dur }}
       inicio: ${{ steps.p.outputs.inicio }}
+      sub: ${{ steps.p.outputs.sub }}
     steps:
       - uses: actions/checkout@v4
       - id: p
@@ -27,6 +28,7 @@ jobs:
           n=$(jq -r '.partes // 6' "$pasta/render.json")
           echo "pasta=$pasta" >> "$GITHUB_OUTPUT"
           echo "dur=$(jq -r .dur "$pasta/render.json")" >> "$GITHUB_OUTPUT"
+          echo "sub=$(jq -r '.sub // 1' "$pasta/render.json")" >> "$GITHUB_OUTPUT"
           echo "partes=$(jq -cn --argjson n "$n" '[range(0;$n)]')" >> "$GITHUB_OUTPUT"
           echo "inicio=$(date +%s)" >> "$GITHUB_OUTPUT"
 
@@ -52,11 +54,12 @@ jobs:
           DUR: ${{ needs.plano.outputs.dur }}
           N: ${{ strategy.job-total }}
           K: ${{ matrix.k }}
+          SUB: ${{ needs.plano.outputs.sub }}
         run: |
           de=$(python3 -c "print(round($DUR*$K/$N, 4))")
           ate=$(python3 -c "print(round($DUR*($K+1)/$N, 4))")
           t0=$(date +%s)
-          node render.mjs "$PASTA" --sub 1 --de "$de" --ate "$ate" --saida "parte-$K.mp4" < /dev/null
+          node render.mjs "$PASTA" --sub "$SUB" --de "$de" --ate "$ate" --saida "parte-$K.mp4" < /dev/null
           echo "parte $K: $de–$ate s em $(( $(date +%s) - t0 )) s" | tee "$PASTA/tempo-$K.txt"
       - uses: actions/upload-artifact@v4
         with:
