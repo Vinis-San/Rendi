@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>A guerra dos microchips — versão máxima</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@300;400;700&family=Cormorant+Garamond:ital@1&family=Hanken+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  html,body { margin:0; width:1080px; height:1920px; overflow:hidden; background:#ece4d6; }
+  * { transition:none !important; animation:none !important; box-sizing:border-box; }
+  #palco, #cursor { position:absolute; inset:0; overflow:hidden; }
+  #pre { position:absolute; left:-9999px; }
+</style></head><body>
+<div id="pre"><span style="font:300 20px 'Big Shoulders Display'">a</span><span style="font:400 20px 'Big Shoulders Display'">a</span><span style="font:italic 20px 'Cormorant Garamond'">a</span><span style="font:600 20px 'Hanken Grotesk'">a</span><span style="font:500 20px 'IBM Plex Mono'">a</span></div>
+<div id="palco"></div><div id="cursor"></div>
+<script>window.PLANO = { bpm: 45 }; window.READY = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => 0))));</script>
+<script src="https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js"></script><script src="https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js"></script><script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="dados.js"></script>
+<script src="../motor.js"></script>
+<script src="../sanguina-max/filme.js"></script>
+<script>window.seek(0);</script>
+</body></html>
