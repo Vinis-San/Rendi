@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Vinheta Sanguina</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400&family=Pinyon+Script&family=Cormorant+Garamond:ital@1&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  html,body { margin:0; width:1920px; height:1080px; overflow:hidden; background:#faf8f3; }
+  * { transition:none !important; animation:none !important; box-sizing:border-box; }
+  #palco, #cursor { position:absolute; inset:0; overflow:hidden; }
+  #pre { position:absolute; left:-9999px; }
+</style></head><body>
+<div id="pre"><span style="font:400 20px 'Big Shoulders Display'">a</span><span style="font:20px 'Pinyon Script'">a</span><span style="font:italic 20px 'Cormorant Garamond'">a</span><span style="font:500 20px 'IBM Plex Mono'">a</span>
+<img src="img/vesalius-174.png"><img src="img/maos-durer.png"><img src="img/vesalius-190.png"><img src="img/vitruviano.png"></div>
+<div id="palco"></div><div id="cursor"></div>
+<script>window.PLANO = { bpm: 60 }; window.READY = document.fonts.ready.then(() => Promise.all([...document.images].map(i => i.decode().catch(() => 0))));</script>
+<script src="../motor.js"></script>
+<script src="filme.js"></script>
+<script>window.seek(0);</script>
+</body></html>
