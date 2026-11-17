@@ -1,0 +1,7 @@
+{
+  "name": "faceless-film",
+  "private": true,
+  "type": "module",
+  "description": "Motor de vídeo sem framework: index.html com seek(t) + Playwright + ffmpeg",
+  "dependencies": { "playwright-core": "1.56.1" }
+}

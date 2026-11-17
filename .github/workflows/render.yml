@@ -1,0 +1,92 @@
+# Render em paralelo na nuvem do GitHub.
+# Como usar: crie a branch render/<pasta> com a pasta do vídeo na raiz (index.html, dados.js, img/, audio.mp3, render.json).
+# render.json: {"dur": 78.1, "partes": 6}
+# Saída: uma release "render-<pasta>" com final.mp4 e tempos.txt. A branch do vídeo é apagada ao fim.
+name: render
+
+on:
+  push:
+    branches: ["render/**"]
+
+permissions:
+  contents: write
+
+jobs:
+  plano:
+    runs-on: ubuntu-latest
+    outputs:
+      pasta: ${{ steps.p.outputs.pasta }}
+      partes: ${{ steps.p.outputs.partes }}
+      dur: ${{ steps.p.outputs.dur }}
+      inicio: ${{ steps.p.outputs.inicio }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          pasta="${GITHUB_REF_NAME#render/}"
+          n=$(jq -r '.partes // 6' "$pasta/render.json")
+          echo "pasta=$pasta" >> "$GITHUB_OUTPUT"
+          echo "dur=$(jq -r .dur "$pasta/render.json")" >> "$GITHUB_OUTPUT"
+          echo "partes=$(jq -cn --argjson n "$n" '[range(0;$n)]')" >> "$GITHUB_OUTPUT"
+          echo "inicio=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+  parte:
+    needs: plano
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        k: ${{ fromJson(needs.plano.outputs.partes) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Dependências
+        run: |
+          npm install --no-audit --no-fund
+          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          sudo apt-get install -y -qq fonts-noto-color-emoji >/dev/null || true
+      - name: Renderizar trecho
+        env:
+          PASTA: ${{ needs.plano.outputs.pasta }}
+          DUR: ${{ needs.plano.outputs.dur }}
+          N: ${{ strategy.job-total }}
+          K: ${{ matrix.k }}
+        run: |
+          de=$(python3 -c "print(round($DUR*$K/$N, 4))")
+          ate=$(python3 -c "print(round($DUR*($K+1)/$N, 4))")
+          t0=$(date +%s)
+          node render.mjs "$PASTA" --sub 1 --de "$de" --ate "$ate" --saida "parte-$K.mp4" < /dev/null
+          echo "parte $K: $de–$ate s em $(( $(date +%s) - t0 )) s" | tee "$PASTA/tempo-$K.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parte-${{ matrix.k }}
+          path: |
+            ${{ needs.plano.outputs.pasta }}/parte-${{ matrix.k }}.mp4
+            ${{ needs.plano.outputs.pasta }}/tempo-${{ matrix.k }}.txt
+          retention-days: 1
+
+  juntar:
+    needs: [plano, parte]
+    runs-on: ubuntu-latest
+    env:
+      PASTA: ${{ needs.plano.outputs.pasta }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: partes, merge-multiple: true }
+      - name: Juntar trechos e áudio
+        run: |
+          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          ls partes | sort -V | grep mp4 | sed "s#^#file 'partes/#; s#\$#'#" > lista.txt
+          ffmpeg -v error -y -f concat -safe 0 -i lista.txt -i "$PASTA/audio.mp3" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart final.mp4
+          { cat partes/tempo-*.txt | sort -V; echo "total do workflow até juntar: $(( $(date +%s) - ${{ needs.plano.outputs.inicio }} )) s"; } > tempos.txt
+          cat tempos.txt
+      - name: Publicar release
+        run: |
+          tag="render-$PASTA"
+          gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$tag" final.mp4 tempos.txt --title "$PASTA" --notes "Render automático de $PASTA." --target "$GITHUB_SHA"
+      - name: Apagar a branch do vídeo
+        run: git push origin --delete "$GITHUB_REF_NAME" || true
