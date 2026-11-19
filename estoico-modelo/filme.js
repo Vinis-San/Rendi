@@ -44,19 +44,31 @@ const foto = (src, f, d, i, st = "", extra = "") => {
 const veu = (a = 0.55) => abs(`inset:0;background:linear-gradient(180deg,rgba(18,22,29,${a * 0.5}) 0%,rgba(18,22,29,${a * 0.2}) 40%,rgba(18,22,29,${a}) 100%)`);
 const vinheta = abs("inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.45) 100%)");
 
-// Legenda palavra a palavra: janela de 3 palavras, a falada em terracota.
+// Legenda estável: blocos fixos (frase cortada na pontuação, até ~42 caracteres), calculados uma vez.
+// O bloco fica parado na tela do início da 1ª palavra ao fim da última; só a cor da palavra falada muda.
+// Sem escala, sem pulo. Tempos vêm de timeline.json (alinhados ao áudio por pipeline/alinhar.py).
+const BLOCOS = (() => {
+  const P = TIMELINE.words, out = [];
+  let cur = [], len = 0;
+  P.forEach((w, k) => {
+    const gap = k > 0 ? w.s - P[k - 1].e : 0;
+    if (cur.length && (len + w.w.length > 42 || gap > 0.45)) { out.push(cur); cur = []; len = 0; }
+    cur.push(k); len += w.w.length + 1;
+    if (/[.!?:;…]$/.test(w.w) || (/,$/.test(w.w) && len > 22)) { out.push(cur); cur = []; len = 0; }
+  });
+  if (cur.length) out.push(cur);
+  return out.map((ks) => ({ ks, s: P[ks[0]].s, e: P[ks[ks.length - 1]].e }));
+})();
 const legenda = (t) => {
   const P = TIMELINE.words;
-  let i = P.findIndex((w) => w.e >= t);
-  if (i < 0 || P[i].s - t > 0.5) return "";
-  const ini = Math.floor(i / 3) * 3, g = P.slice(ini, ini + 3);
-  const pop = iv(t * FPS, P[i].s * FPS, P[i].s * FPS + 4);
-  return abs("left:0;right:0;bottom:96px;text-align:center",
-    g.map((w, k) => {
-      const at = ini + k === i;
-      return `<span style="display:inline-block;margin:0 12px;font:800 64px/1.1 ${F.sans};color:${at ? C.terra2 : "#fff"};` +
-        `text-shadow:0 4px 18px rgba(0,0,0,.75),0 2px 2px rgba(0,0,0,.6);transform:scale(${at ? 1 + 0.08 * pop : 1})">${esc(w.w)}</span>`;
-    }).join(""));
+  const b = BLOCOS.find((x, j) => t >= x.s - 0.08 && t < Math.min(x.e + 0.35, BLOCOS[j + 1]?.s ?? 1e9));
+  if (!b) return "";
+  return abs("left:140px;right:140px;bottom:92px;text-align:center",
+    `<div style="font:800 56px/1.25 ${F.sans};text-shadow:0 3px 14px rgba(0,0,0,.8),0 1px 2px rgba(0,0,0,.7)">` +
+    b.ks.map((k) => {
+      const w = P[k], falando = t >= w.s - 0.03 && t < w.e + 0.02, dito = t >= w.e;
+      return `<span style="color:${falando ? C.terra2 : dito ? "#fff" : "rgba(255,255,255,.62)"}">${esc(w.w)}</span>`;
+    }).join(" ") + "</div>");
 };
 
 // Cena sem imagem: a frase narrada grande, palavras acendendo conforme a voz (técnica "palavra em fundo liso").
