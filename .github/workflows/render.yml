@@ -1,6 +1,6 @@
 # Render em paralelo na nuvem do GitHub.
 # Como usar: crie a branch render/<pasta> com a pasta do vídeo na raiz (index.html, dados.js, img/, audio.mp3, render.json).
-# render.json: {"dur": 78.1, "partes": 6, "sub": 3}  (sub 3 = motion blur, 3x mais lento)
+# render.json: {"dur": 78.1, "partes": 6, "sub": 3, "cortes": [0, 10.2, ...]}  (sub 3 = motion blur; cortes opcionais, por peso)
 # Saída: uma release "render-<pasta>" com final.mp4 e tempos.txt. A branch do vídeo é apagada ao fim.
 name: render
 
@@ -42,12 +42,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
+        with: { node-version: 22, cache: npm }
+      - name: Cache do ffmpeg estático
+        uses: actions/cache@v4
+        with: { path: ~/ffmpeg-bin, key: ffmpeg-static-v1 }
       - name: Dependências
         run: |
-          npm install --no-audit --no-fund
-          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
-          sudo apt-get install -y -qq fonts-noto-color-emoji >/dev/null || true
+          npm ci --no-audit --no-fund --prefer-offline
+          if [ ! -x ~/ffmpeg-bin/ffmpeg ]; then
+            mkdir -p ~/ffmpeg-bin && curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C ~/ffmpeg-bin --wildcards '*/ffmpeg' '*/ffprobe'
+          fi
+          echo "$HOME/ffmpeg-bin" >> "$GITHUB_PATH"
       - name: Renderizar trecho
         env:
           PASTA: ${{ needs.plano.outputs.pasta }}
@@ -56,10 +61,10 @@ jobs:
           K: ${{ matrix.k }}
           SUB: ${{ needs.plano.outputs.sub }}
         run: |
-          de=$(python3 -c "print(round($DUR*$K/$N, 4))")
-          ate=$(python3 -c "print(round($DUR*($K+1)/$N, 4))")
+          # cortes por peso (render.json "cortes") ou divisão igual por tempo
+          read de ate < <(python3 -c "import json;r=json.load(open('$PASTA/render.json'));c=r.get('cortes') or [round($DUR*k/$N,4) for k in range($N+1)];print(c[$K],c[$K+1])")
           t0=$(date +%s)
-          node render.mjs "$PASTA" --sub "$SUB" --de "$de" --ate "$ate" --saida "parte-$K.mp4" < /dev/null
+          node render.mjs "$PASTA" --sub "$SUB" --de "$de" --ate "$ate" --abas "$(nproc)" --saida "parte-$K.mp4" < /dev/null
           echo "parte $K: $de–$ate s em $(( $(date +%s) - t0 )) s" | tee "$PASTA/tempo-$K.txt"
       - uses: actions/upload-artifact@v4
         with:
@@ -81,7 +86,8 @@ jobs:
         with: { path: partes, merge-multiple: true }
       - name: Juntar trechos e áudio
         run: |
-          command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          command -v ffmpeg || (mkdir -p ~/ffmpeg-bin && curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C ~/ffmpeg-bin --wildcards '*/ffmpeg' && export PATH="$HOME/ffmpeg-bin:$PATH")
+          export PATH="$HOME/ffmpeg-bin:$PATH"
           ls partes | sort -V | grep mp4 | sed "s#^#file 'partes/#; s#\$#'#" > lista.txt
           ffmpeg -v error -y -f concat -safe 0 -i lista.txt -i "$PASTA/audio.mp3" -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart final.mp4
           { cat partes/tempo-*.txt | sort -V; echo "total do workflow até juntar: $(( $(date +%s) - ${{ needs.plano.outputs.inicio }} )) s"; } > tempos.txt

@@ -38,8 +38,8 @@ const foto = (src, f, d, i, st = "", extra = "") => {
   const z = 1.06 + 0.1 * k;
   const tx = [-1, 1, 0, 0][dir] * 30 * (k - 0.5), ty = [0, 0, -1, 1][dir] * 20 * (k - 0.5);
   return abs(`inset:0;overflow:hidden;${st}`,
-    // Correção de cor única para fotos de fontes diferentes parecerem do mesmo filme.
-    `<img src="${src}" style="width:100%;height:100%;object-fit:cover;transform:translate(${tx}px,${ty}px) scale(${z});filter:sepia(.22) saturate(.78) contrast(1.06) brightness(.9);${extra}">`);
+    // A correção de cor única já vem aplicada nas imagens (montar.py), não custa nada por quadro.
+    `<img src="${src}" style="width:100%;height:100%;object-fit:cover;transform:translate(${tx}px,${ty}px) scale(${z});${extra}">`);
 };
 const veu = (a = 0.55) => abs(`inset:0;background:linear-gradient(180deg,rgba(18,22,29,${a * 0.5}) 0%,rgba(18,22,29,${a * 0.2}) 40%,rgba(18,22,29,${a}) 100%)`);
 const vinheta = abs("inset:0;background:radial-gradient(ellipse at 50% 45%,transparent 55%,rgba(0,0,0,.45) 100%)");
@@ -177,12 +177,12 @@ window.FILME = {
     const fim = (CENAS[i + 1]?.ini ?? 1e9) * FPS - fr;
     const vis = Math.min(iv(f, 0, 8), iv(fim, 0, 6));
     const tipo = cenas[c.tipo] ? c.tipo : "pintura";
-    const grao = `<svg width="${W}" height="${H}" style="position:absolute;inset:0;opacity:.05;mix-blend-mode:overlay"><filter id="n"><feTurbulence baseFrequency=".9" seed="${fr % 6}"/></filter><rect width="${W}" height="${H}" filter="url(#n)"/></svg>`;
+    const grao = `<img src="grao.png" style="position:absolute;inset:0;width:${W}px;height:${H}px;opacity:.07">`;
     return {
       html: `<div style="position:absolute;inset:0;background:${C.noite}"></div>
         <div style="position:absolute;inset:0;opacity:${vis}">${cenas[tipo](c, f, d, i)}</div>
         ${grao}
-        ${abs(`left:0;top:0;height:5px;width:${(t / TIMELINE.total) * W}px;background:${C.terra}`)}
+        ${abs(`left:0;top:0;height:5px;width:${Math.round((t / TIMELINE.total) * W / 4) * 4}px;background:${C.terra}`)}
         ${abs("right:60px;top:40px", `<div style="font:800 18px ${F.sans};letter-spacing:.3em;color:rgba(255,255,255,.55);text-shadow:0 1px 4px rgba(0,0,0,.6)">NÃO AMANHÃ.</div>`)}`,
     };
   },
