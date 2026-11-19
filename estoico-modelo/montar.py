@@ -18,7 +18,8 @@ for png in sorted((ep / "img").glob("c*.png")):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(png), "-vf",
                     "scale=1920:-2,eq=contrast=1.06:saturation=0.74:brightness=-0.035,colorbalance=rs=.05:gs=.015:bs=-.06:rm=.03:bm=-.03", "-q:v", "3",
                     str(dst / "img" / (png.stem + ".jpg"))], check=True)
-shutil.copy(ep / "narracao.mp3", dst / "audio.mp3")
+# Mixagem com música e efeitos (pipeline/mixar.py), se existir; senão só a voz.
+shutil.copy(ep / "narracao_mix.mp3" if (ep / "narracao_mix.mp3").exists() else ep / "narracao.mp3", dst / "audio.mp3")
 # Granulado pronto (uma imagem), em vez de ruído SVG recalculado a cada quadro.
 subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=0x808080:s=1920x1080", "-vf", "noise=alls=60:allf=u,format=gray",
                 "-frames:v", "1", str(dst / "grao.png")], check=True)
