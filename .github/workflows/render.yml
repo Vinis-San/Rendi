@@ -36,7 +36,7 @@ jobs:
     needs: plano
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         k: ${{ fromJson(needs.plano.outputs.partes) }}
     steps:
@@ -50,9 +50,14 @@ jobs:
         run: |
           npm ci --no-audit --no-fund --prefer-offline
           if [ ! -x ~/ffmpeg-bin/ffmpeg ]; then
-            mkdir -p ~/ffmpeg-bin && curl -sL https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz | tar -xJ --strip-components=1 -C ~/ffmpeg-bin --wildcards '*/ffmpeg' '*/ffprobe'
+            mkdir -p ~/ffmpeg-bin
+            for t in 1 2 3; do
+              curl -sfL --retry 3 https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ff.tar.xz                 && tar -xJf /tmp/ff.tar.xz --strip-components=1 -C ~/ffmpeg-bin --wildcards '*/ffmpeg' '*/ffprobe' && break
+              sleep 5
+            done
           fi
-          echo "$HOME/ffmpeg-bin" >> "$GITHUB_PATH"
+          if [ -x ~/ffmpeg-bin/ffmpeg ]; then echo "$HOME/ffmpeg-bin" >> "$GITHUB_PATH"
+          else command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg); fi
       - name: Renderizar trecho
         env:
           PASTA: ${{ needs.plano.outputs.pasta }}
