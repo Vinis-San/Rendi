@@ -13,17 +13,26 @@ ao mesmo tempo, junta tudo com o áudio e devolve o `final.mp4`.
 - Não usa Remotion nem HyperFrames.
 - O vídeo é uma página web: `index.html` + JavaScript que desenha qualquer instante com `window.seek(t)`.
 - O Chrome (headless, via Playwright) tira um print por quadro e o ffmpeg codifica em H.264.
-- Cada máquina renderiza um trecho (`--de`/`--ate`); uma última máquina concatena e põe o áudio.
+- Cada máquina renderiza um trecho (`--de`/`--ate`), com um Chrome por núcleo (`--abas`); uma última máquina
+  concatena e põe o áudio.
+- Quadro com o mesmo DOM do anterior (cartelas paradas) reaproveita o print. Para isso o filme não pode mudar
+  nada a cada quadro sem necessidade: granulado como imagem fixa (não `feTurbulence` com seed por quadro),
+  barras de progresso em passos inteiros, cor das fotos aplicada no JPEG e não em `filter` CSS.
 
 > Atenção ao nome: **Rendi (este repo)** ≠ **Rendi (rendi.dev)**, o serviço de ffmpeg na nuvem
 > (chaves `RENDI_FFMPEG_API_KEY_*`, `apps/faceless-studio/pipeline/rendi.py`). Esta skill é sobre o repo.
 
 ## Por que existe
-- O notebook da empresa bloqueia o Remotion; Chrome + ffmpeg funcionam em qualquer lugar.
+- **Paralelizar:** o vídeo é dividido em partes renderizadas ao mesmo tempo em várias máquinas, então o tempo
+  total cai para alguns minutos e o notebook fica livre. Um episódio de ~10 min no Remotion local levou 31 min.
+- **Motor próprio e enxuto:** `seek(t)` determinístico + Chrome + ffmpeg, sem framework. Renderiza qualquer coisa
+  que uma página web desenhe, em qualquer máquina, sem build nem licença.
 - Em repositório **público**, o GitHub Actions tem **minutos ilimitados** e máquinas Linux de 4 núcleos,
   com até ~20 jobs ao mesmo tempo no plano grátis. (Privado: ~2.000 min/mês, máquinas menores.)
 - Medido em 17/11/2026: vídeo de 78 s 9:16 levou **6 min no notebook** e **2 min 16 s no GitHub** (6 partes).
   Com motion blur (`sub: 3`) e 12 partes, 66 s saíram em **2 min 39 s**.
+- Medido em 19/11/2026 (motor otimizado): episódio de **9:41** em 16:9, 20 partes, **2 min 48 s** de workflow
+  (0,29 min de render por minuto de vídeo). Mesmo vídeo no Remotion local: 31 min.
 
 ## Estrutura do repositório
 ```
@@ -33,6 +42,7 @@ package.json        playwright-core
 sanguina-modelo/    modelo 16:9 (pranchas, capítulos, legenda) + montar.py (gera index.html e dados.js)
 sanguina-curto/     modelo 9:16 (chip, mapa d3-geo, palavras, duelo, contagem)
 sanguina-max/       modelo 9:16 de alta energia (planos por tempo absoluto, sons sincronizados)
+estoico-modelo/     modelo 16:9 do canal Não Amanhã (8 tipos de cena, legenda estável por frase) + montar.py
 .github/workflows/render.yml   o render em paralelo
 ```
 
@@ -43,7 +53,9 @@ Uma pasta na raiz do repo, por exemplo `chips-03/`, com:
   - `window.PLANO = { bpm }` (usado só pela folha de quadros)
   - opcional `window.READY` (Promise: fontes, imagens, dados externos carregados)
 - `dados.js` (roteiro/timeline), `img/` (imagens), `audio.mp3` (mixagem final)
-- `render.json`: `{"dur": 66.8, "partes": 12, "sub": 3}`
+- `render.json`: `{"dur": 66.8, "partes": 12, "sub": 3, "cortes": [0, 9.5, ...]}`
+  - `cortes` (opcional): limites das partes por **peso** (cena com foto em movimento pesa ~3× uma cartela);
+    sem ele, divide por tempo igual. **No máximo 20 partes** no plano grátis: o excedente vai para a fila.
   - `dur`: duração em segundos; `partes`: quantas máquinas; `sub`: 1 sem blur, 3 com motion blur (3× mais lento)
 
 Regras do `seek(t)`: determinístico. Mesmo `t` = mesma imagem. Nada de `Math.random` (use `rng`),
