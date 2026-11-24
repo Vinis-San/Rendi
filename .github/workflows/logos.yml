@@ -84,7 +84,9 @@ jobs:
       - uses: actions/cache@v4
         with: { path: ~/ffmpeg-bin, key: ffmpeg-static-v1 }
       - uses: actions/download-artifact@v4
-        with: { path: ${{ needs.plano.outputs.pasta }}/segmentos, merge-multiple: true }
+        with:
+          path: ${{ needs.plano.outputs.pasta }}/segmentos
+          merge-multiple: true
       - name: Juntar e mixar
         run: |
           [ -x ~/ffmpeg-bin/ffmpeg ] && export PATH="$HOME/ffmpeg-bin:$PATH" || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
