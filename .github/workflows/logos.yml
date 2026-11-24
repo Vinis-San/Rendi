@@ -1,0 +1,102 @@
+# Vídeo no estilo "O Logos" montado só com FFmpeg (sem Chrome), em paralelo.
+# Como usar: branch logos/<pasta> com a pasta na raiz: roteiro.json, timeline.json, img/, narracao.mp3,
+# musica.mp3, fonts/serif-italic.ttf, logos_render.py e logos.json ({"partes": 4}).
+# Só material livre (domínio público, CC, voz e trilha próprias ou CC BY): o repositório é público.
+# Saída: release "logos-<pasta>" com final.mp4 e tempos.txt. A branch é apagada ao fim.
+name: logos
+
+on:
+  push:
+    branches: ["logos/**"]
+
+permissions:
+  contents: write
+
+jobs:
+  plano:
+    runs-on: ubuntu-latest
+    outputs:
+      pasta: ${{ steps.p.outputs.pasta }}
+      partes: ${{ steps.p.outputs.partes }}
+      inicio: ${{ steps.p.outputs.inicio }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          pasta="${GITHUB_REF_NAME#logos/}"
+          n=$(jq -r '.partes // 4' "$pasta/logos.json")
+          echo "pasta=$pasta" >> "$GITHUB_OUTPUT"
+          echo "partes=$(jq -cn --argjson n "$n" '[range(0;$n)]')" >> "$GITHUB_OUTPUT"
+          echo "inicio=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+  trecho:
+    needs: plano
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        k: ${{ fromJson(needs.plano.outputs.partes) }}
+    env:
+      PASTA: ${{ needs.plano.outputs.pasta }}
+      LOGOS_PARALELO: "3"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache do ffmpeg estático
+        uses: actions/cache@v4
+        with: { path: ~/ffmpeg-bin, key: ffmpeg-static-v1 }
+      - name: FFmpeg
+        run: |
+          if [ ! -x ~/ffmpeg-bin/ffmpeg ]; then
+            mkdir -p ~/ffmpeg-bin
+            for i in 1 2 3; do
+              curl -sfL --retry 3 https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o /tmp/ff.tar.xz \
+                && tar -xJf /tmp/ff.tar.xz --strip-components=1 -C ~/ffmpeg-bin --wildcards '*/ffmpeg' '*/ffprobe' && break
+              sleep 5
+            done
+          fi
+          if [ -x ~/ffmpeg-bin/ffmpeg ]; then echo "$HOME/ffmpeg-bin" >> "$GITHUB_PATH"
+          else command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg); fi
+      - name: Renderizar trecho
+        env:
+          K: ${{ matrix.k }}
+          N: ${{ strategy.job-total }}
+        run: |
+          t0=$(date +%s)
+          python3 "$PASTA/logos_render.py" "$PASTA" plano "$N"
+          python3 "$PASTA/logos_render.py" "$PASTA" trecho "$K"
+          echo "trecho $K: $(( $(date +%s) - t0 )) s" > "$PASTA/segmentos/tempo-$K.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trecho-${{ matrix.k }}
+          path: |
+            ${{ needs.plano.outputs.pasta }}/segmentos/*.mp4
+            ${{ needs.plano.outputs.pasta }}/segmentos/tempo-*.txt
+          retention-days: 1
+
+  juntar:
+    needs: [plano, trecho]
+    runs-on: ubuntu-latest
+    env:
+      PASTA: ${{ needs.plano.outputs.pasta }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with: { path: ~/ffmpeg-bin, key: ffmpeg-static-v1 }
+      - uses: actions/download-artifact@v4
+        with: { path: ${{ needs.plano.outputs.pasta }}/segmentos, merge-multiple: true }
+      - name: Juntar e mixar
+        run: |
+          [ -x ~/ffmpeg-bin/ffmpeg ] && export PATH="$HOME/ffmpeg-bin:$PATH" || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          python3 "$PASTA/logos_render.py" "$PASTA" juntar
+          ffmpeg -v error -i "$PASTA/final.mp4" -f null -
+          { cat "$PASTA"/segmentos/tempo-*.txt | sort -V; echo "total do workflow: $(( $(date +%s) - ${{ needs.plano.outputs.inicio }} )) s"; } > tempos.txt
+          cat tempos.txt
+          cp "$PASTA/final.mp4" final.mp4
+      - name: Publicar release
+        run: |
+          tag="logos-$PASTA"
+          gh release delete "$tag" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$tag" final.mp4 tempos.txt --title "$PASTA" --notes "Render automático (logos) de $PASTA." --target "$GITHUB_SHA"
+      - name: Apagar a branch do vídeo
+        run: git push origin --delete "$GITHUB_REF_NAME" || true
