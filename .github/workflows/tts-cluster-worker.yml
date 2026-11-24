@@ -31,13 +31,13 @@ jobs:
           lscpu | grep -E '^CPU\(s\):|^Model name:'
           free -m
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libopenblas-dev espeak-ng
+          sudo apt-get install -y -qq libopenblas-dev espeak-ng sox
           git init engine
           git -C engine fetch --depth 1 https://github.com/gabriele-mastrapasqua/qwen3-tts.git "$ENGINE_COMMIT"
           git -C engine checkout --detach FETCH_HEAD
           make -C engine -j4 blas
           espeak-ng -v pt-br -s 155 -w raw.wav 'Hoje temos um teste de narração. Cada frase fará parte de uma história curta gravada em português.'
-          ffmpeg -hide_banner -loglevel error -i raw.wav -ar 24000 -ac 1 -c:a pcm_s16le reference.wav
+          sox raw.wav -r 24000 -c 1 -b 16 reference.wav
       - name: Download pinned Qwen Base weights
         run: |
           model_url="https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base/resolve/$MODEL_COMMIT"
