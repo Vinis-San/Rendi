@@ -1,0 +1,124 @@
+{
+ "titulo": "Por Que Nada Te Satisfaz Por Muito Tempo — Schopenhauer",
+ "voz": "voicefree:CAPCUT_lucca",
+ "introDur": 3.0,
+ "sonoplastia": [],
+ "cartelaTitulo": [
+  "Por que nada te satisfaz",
+  "por muito tempo"
+ ],
+ "cenas": [
+  {
+   "id": "c01",
+   "tipo": "abertura",
+   "respiro": 0.6,
+   "texto": "Você já reparou que quase nada te deixa feliz por muito tempo? Você quer muito uma coisa. Pensa nela antes de dormir. Trabalha por ela. E quando finalmente consegue, a alegria dura uns dias. Depois aquilo vira só mais uma coisa que você tem.",
+   "planos": [
+    {
+     "busca": "night street city lights rain photograph",
+     "efeito": "corisolada"
+    },
+    {
+     "busca": "Tantalus painting",
+     "efeito": "kenburns"
+    },
+    {
+     "busca": "Gustave Doré London a pilgrimage engraving",
+     "efeito": "aco"
+    }
+   ]
+  },
+  {
+   "id": "c02",
+   "tipo": "pensador",
+   "respiro": 0.8,
+   "texto": "Um homem percebeu isso há duzentos anos. Ele se chamava Arthur Schopenhauer, e chegou a uma conclusão que até hoje incomoda muita gente.",
+   "planos": [
+    {
+     "busca": "Arthur Schopenhauer portrait 1859",
+     "efeito": "aco"
+    },
+    {
+     "busca": "Frankfurt am Main 19th century engraving",
+     "efeito": "kenburns"
+    }
+   ]
+  },
+  {
+   "id": "c03",
+   "tipo": "versiculo",
+   "respiro": 1.2,
+   "citacao": [
+    "Schopenhauer, O mundo como vontade e representação",
+    "A vida oscila como um pêndulo, entre a dor e o tédio."
+   ],
+   "texto": "Para ele, a vida oscila como um pêndulo, para lá e para cá, entre a dor e o tédio.",
+   "planos": [
+    {
+     "busca": "pendulum clock antique",
+     "efeito": "duotone"
+    }
+   ]
+  },
+  {
+   "id": "c04",
+   "tipo": "corpo",
+   "respiro": 0.7,
+   "texto": "Quando você deseja algo e não tem, sofre. É a dor da falta. Quando finalmente consegue, o desejo some, e no lugar dele aparece um vazio. É o tédio. E para fugir do tédio, você inventa um desejo novo. E o pêndulo volta a balançar.",
+   "planos": [
+    {
+     "busca": "Sisyphus Titian",
+     "efeito": "kenburns"
+    },
+    {
+     "busca": "Hieronymus Bosch Garden of Earthly Delights detail",
+     "efeito": "duotone"
+    },
+    {
+     "busca": "empty room window light photograph",
+     "efeito": "aco"
+    },
+    {
+     "busca": "crowded street 1900 photograph",
+     "efeito": "corisolada"
+    }
+   ]
+  },
+  {
+   "id": "c05",
+   "tipo": "hoje",
+   "respiro": 0.7,
+   "texto": "Hoje esse pêndulo tem nome. Ele mora no celular. Cada notificação é um desejo pequeno, cada rolagem é uma fuga pequena do tédio. A gente nunca esteve tão ocupado, e nunca esteve tão vazio.",
+   "planos": [
+    {
+     "busca": "smartphone dark hand photograph",
+     "efeito": "corisolada"
+    },
+    {
+     "busca": "Caspar David Friedrich Monk by the Sea",
+     "efeito": "aco"
+    }
+   ]
+  },
+  {
+   "id": "c06",
+   "tipo": "fecho",
+   "respiro": 2.0,
+   "texto": "Schopenhauer não prometia uma saída fácil. Mas dizia que entender o pêndulo já te tira de dentro dele. Então talvez a pergunta não seja o que você ainda precisa conseguir. Talvez seja outra: quanto da sua vida está passando no caminho entre um desejo e o próximo?",
+   "planos": [
+    {
+     "busca": "Caspar David Friedrich Wanderer above the Sea of Fog",
+     "efeito": "kenburns"
+    },
+    {
+     "busca": "Arthur Schopenhauer portrait 1859",
+     "efeito": "duotone"
+    }
+   ]
+  }
+ ],
+ "cartelaNome": [
+  "Arthur Schopenhauer",
+  "1788 – 1860"
+ ]
+}
