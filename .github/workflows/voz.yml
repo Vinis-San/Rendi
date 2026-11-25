@@ -1,5 +1,6 @@
 # Narração com TTS local em CPU (Supertonic ou Kokoro-82M), uma voz por job, em paralelo.
-# "motor" no variacoes.json: "supertonic" (padrão; vozes M1..M5, F1) ou "kokoro" (vozes pf_dora, pm_alex, pm_santa).
+# "motor" no variacoes.json: "supertonic" (padrão; vozes M1..M5, F1), "kokoro" (pf_dora, pm_alex, pm_santa)
+# ou "hf" (chama um Space do Hugging Face; "space" no variacoes.json, vozes = variantes como "exag0.5").
 # Como usar: branch voz/<pasta> com a pasta na raiz contendo roteiro.json e variacoes.json:
 #   {"vozes": ["M1","M2","M3","M4","M5","F1"], "velocidades": [1.0, 1.15], "pausa": 0.6, "lang": "pt"}
 # Só texto próprio (o repositório é público). Saída: artefato "voz-<pasta>" com os mp3, comparativo.md/json e index.html.
@@ -49,6 +50,9 @@ jobs:
         uses: actions/cache@v4
         with: { path: ~/.cache, key: "${{ needs.plano.outputs.motor }}-modelo-v1" }
       - run: pip install -r voz/requirements.txt
+      - name: Cliente do Hugging Face
+        if: env.MOTOR == 'hf'
+        run: pip install gradio_client
       - name: Modelo do Kokoro
         if: env.MOTOR == 'kokoro'
         run: |
