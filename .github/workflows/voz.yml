@@ -1,4 +1,5 @@
-# Narração com o Supertonic (TTS local em CPU), uma voz por job, em paralelo.
+# Narração com TTS local em CPU (Supertonic ou Kokoro-82M), uma voz por job, em paralelo.
+# "motor" no variacoes.json: "supertonic" (padrão; vozes M1..M5, F1) ou "kokoro" (vozes pf_dora, pm_alex, pm_santa).
 # Como usar: branch voz/<pasta> com a pasta na raiz contendo roteiro.json e variacoes.json:
 #   {"vozes": ["M1","M2","M3","M4","M5","F1"], "velocidades": [1.0, 1.15], "pausa": 0.6, "lang": "pt"}
 # Só texto próprio (o repositório é público). Saída: artefato "voz-<pasta>" com os mp3, comparativo.md/json e index.html.
@@ -18,6 +19,7 @@ jobs:
     outputs:
       pasta: ${{ steps.p.outputs.pasta }}
       vozes: ${{ steps.p.outputs.vozes }}
+      motor: ${{ steps.p.outputs.motor }}
       inicio: ${{ steps.p.outputs.inicio }}
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +28,7 @@ jobs:
           pasta="${GITHUB_REF_NAME#voz/}"
           echo "pasta=$pasta" >> "$GITHUB_OUTPUT"
           echo "vozes=$(jq -c '.vozes // ["M1","M2","M3","M4","M5","F1"]' "$pasta/variacoes.json")" >> "$GITHUB_OUTPUT"
+          echo "motor=$(jq -r '.motor // "supertonic"' "$pasta/variacoes.json")" >> "$GITHUB_OUTPUT"
           echo "inicio=$(date +%s)" >> "$GITHUB_OUTPUT"
 
   gerar:
@@ -37,18 +40,27 @@ jobs:
         voz: ${{ fromJson(needs.plano.outputs.vozes) }}
     env:
       PASTA: ${{ needs.plano.outputs.pasta }}
+      MOTOR: ${{ needs.plano.outputs.motor }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip, cache-dependency-path: voz/requirements.txt }
       - name: Cache do modelo
         uses: actions/cache@v4
-        with: { path: ~/.cache, key: supertonic-modelo-v1 }
+        with: { path: ~/.cache, key: "${{ needs.plano.outputs.motor }}-modelo-v1" }
       - run: pip install -r voz/requirements.txt
+      - name: Modelo do Kokoro
+        if: env.MOTOR == 'kokoro'
+        run: |
+          pip install kokoro-onnx
+          mkdir -p ~/.cache/kokoro && cd ~/.cache/kokoro
+          base=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
+          [ -s kokoro-v1.0.onnx ] || curl -sfL --retry 3 -o kokoro-v1.0.onnx $base/kokoro-v1.0.onnx
+          [ -s voices-v1.0.bin ] || curl -sfL --retry 3 -o voices-v1.0.bin $base/voices-v1.0.bin
       - name: Gerar
         run: |
           inicio=$(date +%s)
-          python voz/gerar_supertonic.py "$PASTA" "${{ matrix.voz }}" saida
+          python "voz/gerar_${MOTOR}.py" "$PASTA" "${{ matrix.voz }}" saida
           echo "job_s=$(( $(date +%s) - inicio ))" > "saida/${{ matrix.voz }}-job.txt"
       - uses: actions/upload-artifact@v4
         with:
@@ -72,7 +84,7 @@ jobs:
       - name: Comparativo
         run: |
           wall=$(( $(date +%s) - ${{ needs.plano.outputs.inicio }} ))
-          python voz/comparar.py saida "$wall" | tee -a "$GITHUB_STEP_SUMMARY"
+          python voz/comparar.py saida "$wall" "${{ needs.plano.outputs.motor }}" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: voz-${{ needs.plano.outputs.pasta }}

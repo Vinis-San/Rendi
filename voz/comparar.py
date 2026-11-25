@@ -8,7 +8,8 @@ from pathlib import Path
 saida, wall = Path(sys.argv[1]), sys.argv[2] if len(sys.argv) > 2 else "?"
 rel = [json.loads(p.read_text(encoding="utf8")) for p in sorted(saida.glob("*/*.json")) + sorted(saida.glob("*.json"))
        if p.name != "comparativo.json"]
-linhas = ["# Comparativo Supertonic", "", f"Tempo total do workflow (paralelo): **{wall} s**", "",
+motor = sys.argv[3] if len(sys.argv) > 3 else "supertonic"
+linhas = [f"# Comparativo {motor}", "", f"Tempo total do workflow (paralelo): **{wall} s**", "",
           "| Voz | Velocidade | Áudio (s) | Com pausas (s) | Geração (s) | RTF | Palavras/min | Carga do modelo (s) |",
           "|---|---|---|---|---|---|---|---|"]
 for r in sorted(rel, key=lambda r: r["voz"]):
@@ -27,5 +28,5 @@ for r in sorted(rel, key=lambda r: r["voz"]):
 (saida / "index.html").write_text(
     "<!doctype html><meta charset=utf-8><title>Supertonic</title><style>body{font:15px system-ui;background:#111;color:#eee;max-width:900px;margin:30px auto;padding:0 16px}"
     ".c{display:grid;grid-template-columns:150px 1fr;gap:6px 16px;padding:12px 0;border-bottom:1px solid #333}.c span{color:#aaa}.c audio{grid-column:1/3;width:100%}</style>"
-    "<h1>Supertonic · comparativo</h1>" + "".join(cards), encoding="utf8")
+    f"<h1>{motor} · comparativo</h1>" + "".join(cards), encoding="utf8")
 print("\n".join(linhas))
