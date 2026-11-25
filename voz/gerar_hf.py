@@ -26,7 +26,7 @@ space, pausa = var["space"], var.get("pausa", 0.6)
 exag = float(variante.replace("exag", "")) if variante.startswith("exag") else 0.5
 
 t0 = time.time()
-cli = Client(space, hf_token=os.environ.get("HF_TOKEN") or None, verbose=False)
+cli = Client(space, token=os.environ.get("HF_TOKEN") or None, verbose=False)
 api = cli.view_api(return_format="dict", print_info=False)
 print(json.dumps(api, ensure_ascii=False)[:3000], flush=True)  # registro dos endpoints do Space
 endpoint = next(iter(api["named_endpoints"]))
