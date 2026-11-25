@@ -10,6 +10,7 @@ import sys
 import time
 from pathlib import Path
 
+import imageio_ffmpeg
 import numpy as np
 import soundfile as sf
 
@@ -45,7 +46,7 @@ for vel in var["velocidades"]:
                       "palavras": len(c["texto"].split()), "ppm": round(len(c["texto"].split()) / d * 60)})
     total_ger = time.time() - t_ini
     sf.write(pasta_v / "narracao.wav", np.concatenate(blocos), sr)
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(pasta_v / "narracao.wav"), "-af", "loudnorm=I=-16:TP=-1.5",
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-v", "error", "-y", "-i", str(pasta_v / "narracao.wav"), "-af", "loudnorm=I=-16:TP=-1.5",
                     "-b:a", "160k", str(pasta_v / "narracao.mp3")], check=True)
     (pasta_v / "narracao.wav").unlink()
     audio = sum(c["audio_s"] for c in cenas)

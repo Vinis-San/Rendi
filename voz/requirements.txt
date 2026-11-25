@@ -1,3 +1,4 @@
 supertonic
 soundfile
 numpy
+imageio-ffmpeg
